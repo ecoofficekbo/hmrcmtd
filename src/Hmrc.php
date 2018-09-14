@@ -314,10 +314,10 @@ class Hmrc
      * Retrieves authentication tokens from HMRC based on authorisation code supplied by user authorization
      *
      * @param $code string  Authorisation code provided by HMRC when user authorises application using URL from getCodeUri()
-     * @param $redirectUrl string  HMRC currently require this, even though it isn't used
+     * @param $redirectUrl string  HMRC currently require this, even though it isn't used, can use the default value
      * @return object  Contains access token and refresh token
      */
-    public function getToken($code, $redirectUrl) {
+    public function getToken($code, $redirectUrl = 'urn:ietf:wg:oauth:2.0:oob') {
         $client = new Client();
         $formParams = [
             'code'=> $code,

@@ -34,7 +34,7 @@ class HmrcVat extends Hmrc
      * @param string $service  test or live
      * @param \Closure|null $updateAuthFunction  Function to call when authentication tokens have been refreshed by refreshAccessToken()
      */
-    public function __construct($vrn, $accessToken, $refreshToken, $service='test', $updateAuthFunction=null)
+    public function __construct($vrn = '', $accessToken = '', $refreshToken = '', $service='test', $updateAuthFunction=null)
     {
         parent::__construct($accessToken, $refreshToken, $service, $updateAuthFunction);
         $this->vrn = $vrn;
@@ -50,9 +50,9 @@ class HmrcVat extends Hmrc
         $this->endPoint = 'organisations/vat/' . $this->vrn . '/obligations';
         $this->query = [
             'from' => $dateFrom,
-            'to' => $dateTo,
-            'status' => $status
+            'to' => $dateTo
         ];
+        if ($status != '') { $this->query['status'] = $status; }
         return $this->get();
     }
 
@@ -86,7 +86,7 @@ class HmrcVat extends Hmrc
         return $this->get();
     }
 
-    public function createTestUser() {
-        return parent::createTestUser([ 'mtd-vat' ]);
+    public function createTestUser(Array $serviceNames = null) {
+        return parent::createTestUser(($serviceNames ? $serviceNames : [ 'mtd-vat' ]));
     }
 }

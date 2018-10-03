@@ -19,13 +19,18 @@ namespace EcoMtd;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\BadResponseException;
+use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\RequestOptions;
 
 class Hmrc
 {
-    const RETURN_SUCCESS = 1;
-    const RETURN_ERROR = 0;
+    const RETURN_SUCCESS = 0;
+    const RETURN_ERROR = 1;
     const RETURN_AUTH_UPDATE = 2;
+
+    const AUTH_TYPE_NONE = 0;
+    const AUTH_TYPE_USER = 1;
+    const AUTH_TYPE_SERVER = 2;
 
     /**
      * Main URL for HMRC live service
@@ -54,6 +59,13 @@ class Hmrc
      * @var string
      */
     const CLIENT_SECRET = '';
+
+    /**
+     * Client Secret provided when registering application with HMRC Developer Hub, found in "Manage credentials"
+     *
+     * @var string
+     */
+    const SERVER_TOKEN = '';
 
     /**
      * Headers that will be added to every request sent to HMRC
@@ -165,6 +177,13 @@ class Hmrc
     public $updatedAuthentication;
 
     /**
+     * During testing in the sandbox, use this header to specify the scenario we are testing
+     * 
+     * @var string
+     */
+    public $govTestScenario;
+
+    /**
      * Hmrc constructor.
      * 
      * @param string $accessToken  Access token provided by supplying authorisation code to getToken()
@@ -187,9 +206,9 @@ class Hmrc
      * @return int  self::RETURN_AUTH_UPDATE|self::RETURN_SUCCESS|self::RETURN_ERROR
      * @throws \Exception
      */
-    public function get($withAuth=true) {
+    public function get($authType = self::AUTH_TYPE_USER) {
         $this->method = 'GET';
-        return $this->_execute($withAuth);
+        return $this->_execute($authType);
     }
 
     /**
@@ -199,9 +218,9 @@ class Hmrc
      * @return int  self::RETURN_AUTH_UPDATE|self::RETURN_SUCCESS|self::RETURN_ERROR
      * @throws \Exception
      */
-    public function post($withAuth=true) {
+    public function post($authType = self::AUTH_TYPE_USER) {
         $this->method = 'POST';
-        return $this->_execute($withAuth);
+        return $this->_execute($authType);
     }
 
     /**
@@ -211,7 +230,7 @@ class Hmrc
      * @return int self::RETURN_AUTH_UPDATE|self::RETURN_SUCCESS|self::RETURN_ERROR
      * @throws \Exception
      */
-    protected function _execute($withAuth=true) {
+    protected function _execute($authType = self::AUTH_TYPE_USER) {
         if ($this->endPoint == '') {
             throw new \Exception('Endpoint not specified');
         }
@@ -222,7 +241,7 @@ class Hmrc
 
         // Attempt request with current accessToken
         try {
-            $result = $this->_sendRequest($withAuth);
+            $result = $this->_sendRequest($authType);
         } catch (BadResponseException $error) {
             // Error occurred, check code to see whether it was due to expired credentials
             if ($error->getCode() == 401) {
@@ -235,7 +254,7 @@ class Hmrc
                     $this->updatedAuthentication = $this->refreshAccessToken();
 
                     // Token has been refreshed, retry execution
-                    return $this->_execute($withAuth);
+                    return $this->_execute($authType);
                 }
             }
         }
@@ -268,10 +287,15 @@ class Hmrc
      * @param $withAuth
      * @return \Psr\Http\Message\ResponseInterface
      */
-    protected function _sendRequest($withAuth) {
+    protected function _sendRequest($authType) {
         $headers = $this->_essentialHeaders;
-        if ($withAuth) {
+        if ($authType == self::AUTH_TYPE_USER) {
             $headers['Authorization'] = 'Bearer ' . $this->_accessToken;
+        } else if ($authType == self::AUTH_TYPE_SERVER) {
+            $headers['Authorization'] = 'Bearer ' . self::SERVER_TOKEN;
+        }
+        if ($this->govTestScenario != '') {
+            $headers['Gov-Test-Scenario'] = $this->govTestScenario;
         }
 
         $options[RequestOptions::HEADERS] = $headers;
@@ -299,15 +323,25 @@ class Hmrc
             'grant_type' => 'refresh_token',
             'refresh_token' => $this->_refreshToken
         ];
-        $result = $client->post($this->_url.'/oauth/token', [ 'form_params' => $formParams ]);
+        try {
+            $result = $client->post($this->_url . '/oauth/token', ['form_params' => $formParams]);
 
-        $data = json_decode($result->getBody());
-        if ($this->_updateAuthFunction) { call_user_func($this->_updateAuthFunction,$data); }
+            $data = json_decode($result->getBody());
+            if ($this->_updateAuthFunction) { call_user_func($this->_updateAuthFunction,$data); }
 
-        $this->_accessToken = $data->access_token;
-        $this->_refreshToken = $data->refresh_token;
+            $this->_accessToken = $data->access_token;
+            $this->_refreshToken = $data->refresh_token;
+            $this->responseBody = $data;
 
-        return $data;
+            return self::RETURN_SUCCESS;
+        } catch (BadResponseException $error) {
+            $this->error = $error;
+            $this->statusCode = $error->getCode();
+            $this->responseBody = json_decode((string) $error->getResponse()->getBody());
+
+            // Return  error
+            return self::RETURN_ERROR;
+        }
     }
 
     /**
@@ -326,14 +360,24 @@ class Hmrc
             'grant_type' => 'authorization_code',
             'redirect_uri' => $redirectUrl
         ];
-        $result = $client->post($this->_url.'/oauth/token', [ 'form_params' => $formParams ]);
+        try {
+            $result = $client->post($this->_url . '/oauth/token', ['form_params' => $formParams]);
 
-        $data = json_decode($result->getBody());
+            $data = json_decode($result->getBody());
 
-        $this->_accessToken = $data->access_token;
-        $this->_refreshToken = $data->refresh_token;
+            $this->_accessToken = $data->access_token;
+            $this->_refreshToken = $data->refresh_token;
+            $this->responseBody = $data;
 
-        return $data;
+            return self::RETURN_SUCCESS;
+        } catch (BadResponseException $error) {
+            $this->error = $error;
+            $this->statusCode = $error->getCode();
+            $this->responseBody = json_decode((string) $error->getResponse()->getBody());
+
+            // Return  error
+            return self::RETURN_ERROR;
+        }
     }
 
     /**
@@ -360,6 +404,6 @@ class Hmrc
         $body->serviceNames = $serviceNames;
         $this->requestBody = $body;
 
-        return $this->post();
+        return $this->post(self::AUTH_TYPE_SERVER);
     }
 }

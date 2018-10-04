@@ -23,7 +23,7 @@ use EcoMtd\HmrcVat;
 class AuthTestCase extends BaseTestCase
 {
     protected $redirectUrl = 'urn:ietf:wg:oauth:2.0:oob';
-    protected $authorisationCode = '';
+    protected $authorisationCode = 'c84ee08d57d54427903ecc3cdb7c0e80';
 
     public function testGetCode()
     {

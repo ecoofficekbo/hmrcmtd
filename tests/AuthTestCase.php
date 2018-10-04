@@ -18,6 +18,7 @@
 namespace Tests;
 
 use EcoMtd\Hmrc;
+use EcoMtd\HmrcVat;
 
 class AuthTestCase extends BaseTestCase
 {
@@ -39,9 +40,15 @@ class AuthTestCase extends BaseTestCase
         if ($this->authorisationCode == '' && $accessToken == '' && $refreshToken == '') {
             // No code is specified, and auth file doesn't exist
             // output URI to user for granting authority at HMRC website
-            $hmrc = new Hmrc();
-            $data = $hmrc->getCodeUri('test-state',$this->redirectUrl);
-            $msg = "Please authenticate your test user at:\n\n$data\n\nThen enter the supplied authorisation code at the top of AuthTestCase.php (protected \$code = 'paste-your-code-here';)\n\nThen you can run this test again\n";
+            $vat = new HmrcVat();
+            //$hmrc = new Hmrc();
+            $vat->createTestUser();
+            $vrn = $vat->responseBody->vrn;
+            $userId = $vat->responseBody->userId;
+            $password = $vat->responseBody->password;
+            $data = $vat->getCodeUri('test-state',$this->redirectUrl);
+            $msg = "At the top of the file tests/VatTestCase.php, set the \$vrn variable to $vrn\n\n";
+            $msg .= "Please authenticate your test user with userId $userId and password $password at:\n\n$data\n\nThen enter the supplied authorisation code at the top of AuthTestCase.php (protected \$code = 'paste-your-code-here';)\n\nThen you can run this test again\n";
             fwrite(STDOUT, $msg . "\n");
             exit();
         } else {
@@ -56,12 +63,13 @@ class AuthTestCase extends BaseTestCase
     {
         if ($this->authorisationCode != '' && $auth == '') {
             $hmrc = new Hmrc();
-            $data = $hmrc->getToken($this->authorisationCode, $this->redirectUrl);
+            $hmrc->getToken($this->authorisationCode, $this->redirectUrl);
+            $data = $hmrc->responseBody;
             $this->assertTrue($data->access_token != '' && $data->refresh_token != '');
             $f = fopen('tests\auth','w');
             fwrite($f, json_encode($data));
             fclose($f);
-            return $data;
+            return $hmrc->responseBody;
         } else {
             $accessToken = $auth->access_token; $refreshToken = $auth->refresh_token;
             $this->assertTrue($accessToken != '' && $refreshToken != '');
@@ -80,7 +88,14 @@ class AuthTestCase extends BaseTestCase
         $accessToken = $auth->access_token; $refreshToken = $auth->refresh_token;
 
         $hmrc = new Hmrc($accessToken, $refreshToken);
-        $data = $hmrc->refreshAccessToken();
+        $ret = $hmrc->refreshAccessToken();
+        if ($ret != Hmrc::RETURN_SUCCESS) {
+            echo json_encode($hmrc->responseBody);
+        }
+        $this->assertEquals($hmrc->refreshAccessToken(), Hmrc::RETURN_SUCCESS);
+
+
+        $data = $hmrc->responseBody;
         $this->assertTrue($data->access_token != '' && $data->refresh_token != '');
         $f = fopen('tests\auth','w');
         fwrite($f, json_encode($data));

@@ -47,6 +47,7 @@ class HmrcVat extends Hmrc
      * @return int
      */
     public function getVatObligations($dateFrom, $dateTo, $status = '') {
+        $this->clearPreviousCall();
         $this->endPoint = 'organisations/vat/' . $this->vrn . '/obligations';
         $this->query = [
             'from' => $dateFrom,
@@ -57,18 +58,25 @@ class HmrcVat extends Hmrc
     }
 
     public function postVatReturn(VatReturn $vatReturn) {
+        $this->clearPreviousCall();
         $this->endPoint = 'organisations/vat/' . $this->vrn . '/returns';
         $this->requestBody = $vatReturn;
-        return $this->post();
-
+        $result = $this->post();
+        if ($result != Hmrc::RETURN_ERROR) {
+            $this->receiptId = $this->result->getHeader('Receipt-ID')[0];
+            $this->receiptTimestamp = $this->result->getHeader('Receipt-Timestamp')[0];
+        }
+        return $result;
     }
 
     public function getVatReturn($periodKey) {
+        $this->clearPreviousCall();
         $this->endPoint = 'organisations/vat/' . $this->vrn . '/returns/' . $periodKey;
         return $this->get();
     }
 
     public function getVatLiabilities($dateFrom, $dateTo) {
+        $this->clearPreviousCall();
         $this->endPoint = 'organisations/vat/' . $this->vrn . '/liabilities';
         $this->query = [
             'from' => $dateFrom,
@@ -78,6 +86,7 @@ class HmrcVat extends Hmrc
     }
 
     public function getVatPayments($dateFrom, $dateTo) {
+        $this->clearPreviousCall();
         $this->endPoint = 'organisations/vat/' . $this->vrn . '/payments';
         $this->query = [
             'from' => $dateFrom,
@@ -88,5 +97,10 @@ class HmrcVat extends Hmrc
 
     public function createTestUser(Array $serviceNames = null) {
         return parent::createTestUser(($serviceNames ? $serviceNames : [ 'mtd-vat' ]));
+    }
+    public function getCodeUri($state, $redirectUrl, $scope='')
+    {
+        if ($scope == '') { $scope = 'read:vat%20write:vat'; }
+        return parent::getCodeUri($state, $redirectUrl, $scope);
     }
 }

@@ -184,6 +184,27 @@ class Hmrc
     public $govTestScenario;
 
     /**
+     * Unique id returned by API for operation tracking
+     *
+     * @var string
+     */
+    public $xCorrelationId;
+
+    /**
+     * Unique reference number returned by API for a submission
+     *
+     * @var string
+     */
+    public $receiptId;
+
+    /**
+     * The timestamp from the signature, in ISO8601 format
+     *
+     * @var string
+     */
+    public $receiptTimestamp;
+
+    /**
      * Hmrc constructor.
      * 
      * @param string $accessToken  Access token provided by supplying authorisation code to getToken()
@@ -258,11 +279,16 @@ class Hmrc
                 }
             }
         }
+        $this->govTestScenario = null;
         if ($result) {
             // Make result data available to calling application
             $this->result = $result;
             $this->statusCode = $result->getStatusCode();
             $this->responseBody = json_decode($result->getBody());
+            $h = $result->getHeader('X-CorrelationId');
+            if (count($h)) {
+                $this->xCorrelationId = $h[0];
+            }
 
             // Return success or auth update
             if ($this->updatedAuthentication) {
@@ -381,14 +407,33 @@ class Hmrc
     }
 
     /**
+     * Reset all input and output values ready for a new API request
+     */
+    public function clearPreviousCall() {
+        $this->endPoint = '';
+        $this->method = 'GET';
+        $this->statusCode = 0;
+        $this->requestBody = null;
+        $this->responseBody = '';
+        $this->query = null;
+        $this->headers = null;
+        $this->result = null;
+        $this->error = null;
+        $this->updatedAuthentication = null;
+        $this->xCorrelationId = null;
+        $this->receiptId = null;
+        $this->receiptTimestamp = null;
+    }
+
+    /**
      * Helper function providing the URI for a user to authorise the application to submit to HMRC on the users behalf
      *
      * @param $state string  HMRC will pass this back to the $redirectUrl so that you can identify the original request
      * @param $redirectUrl string  URI that HMRC will call when the authorisation is completed
      * @return string  URI for user to visit to authorise application
      */
-    public function getCodeUri($state, $redirectUrl) {
-        return $this->_url."/oauth/authorize?response_type=code&client_id=".self::CLIENT_ID."&scope=read:vat%20write:vat&state=$state&redirect_uri=$redirectUrl";
+    public function getCodeUri($state, $redirectUrl, $scope) {
+        return $this->_url."/oauth/authorize?response_type=code&client_id=".self::CLIENT_ID."&scope=$scope&state=$state&redirect_uri=$redirectUrl";
     }
 
     /**

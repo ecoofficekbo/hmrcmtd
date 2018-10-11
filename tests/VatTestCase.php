@@ -127,6 +127,8 @@ class VatTestCase extends BaseTestCase
             $array = json_decode(json_encode($vat->responseBody), true);
             $this->assertArrayHasKey('processingDate', $array);
             $this->assertArrayHasKey('formBundleNumber', $array);
+            $this->assertRegExp('/\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ/', $vat->receiptTimestamp);
+            $this->assertRegExp('/[0-9a-z\-]{36}/', $vat->receiptId);
         } else {
             $this->assertEquals(403, $vat->statusCode);
             $array = json_decode(json_encode($vat->responseBody), true);

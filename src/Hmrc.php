@@ -47,25 +47,73 @@ class Hmrc
     const TESTURL = 'https://test-api.service.hmrc.gov.uk';
 
     /**
-     * Client ID provided when registering application with HMRC Developer Hub, found in "Manage credentials"
+     * Client ID provided by HMRC after demonstration of app with the DRM team at drm.service@hmrc.gsi.gov.uk
+     * Can be left as empty string and provided in the $credentials array to the constructor
      *
      * @var string
      */
     const CLIENT_ID = '';
 
     /**
-     * Client Secret provided when registering application with HMRC Developer Hub, found in "Manage credentials"
-     *
+     * Client Secret provided by HMRC after demonstration of app with the DRM team at drm.service@hmrc.gsi.gov.uk
+     * Can be left as empty string and provided in the $credentials array to the constructor
+     * 
      * @var string
      */
     const CLIENT_SECRET = '';
 
     /**
-     * Client Secret provided when registering application with HMRC Developer Hub, found in "Manage credentials"
+     * Server Token provided by HMRC after demonstration of app with the DRM team at drm.service@hmrc.gsi.gov.uk
+     * Can be left as empty string and provided in the $credentials array to the constructor
      *
      * @var string
      */
     const SERVER_TOKEN = '';
+
+    /**
+     * Sandbox Client ID provided when registering application with HMRC Developer Hub, found in "Manage credentials"
+     * Can be left as empty string and provided in the $credentials array to the constructor
+     *
+     * @var string
+     */
+    const TEST_CLIENT_ID = '';
+
+    /**
+     * Sandbox Client Secret provided when registering application with HMRC Developer Hub, found in "Manage credentials"
+     * Can be left as empty string and provided in the $credentials array to the constructor
+     *
+     * @var string
+     */
+    const TEST_CLIENT_SECRET = '';
+
+    /**
+     * Sandbox Server Token provided when registering application with HMRC Developer Hub, found in "Manage credentials"
+     * Can be left as empty string and provided in the $credentials array to the constructor
+     *
+     * @var string
+     */
+    const TEST_SERVER_TOKEN = '';
+
+    /**
+     * HMRC Client ID, set by constructor
+     *
+     * @var string
+     */
+    private $_clientId = '';
+
+    /**
+     * HMRC Client Secret, set by constructor
+     *
+     * @var string
+     */
+    private $_clientSecret = '';
+
+    /**
+     * HMRC Server Token, set by constructor
+     *
+     * @var string
+     */
+    private $_serverToken = '';
 
     /**
      * Headers that will be added to every request sent to HMRC
@@ -211,9 +259,19 @@ class Hmrc
      * @param string $refreshToken  Refresh token provided by supplying authorisation code to getToken()
      * @param string $service  test or live
      * @param \Closure|null $updateAuthFunction  Function to call when authentication tokens have been refreshed by refreshAccessToken()
+     * @param array $credentials   Array with the elements clientID, clientSecret, serverToken
      */
-    public function __construct($accessToken = '', $refreshToken = '', $service = 'test', $updateAuthFunction = null)
+    public function __construct($accessToken = '', $refreshToken = '', $service = 'test', $updateAuthFunction = null, $credentials = null)
     {
+        if (!is_array($credentials)) {
+            $this->_clientId = ($service == 'test' ? self::TEST_CLIENT_ID : self::CLIENT_ID);
+            $this->_clientSecret = ($service == 'test' ? self::TEST_CLIENT_SECRET : self::CLIENT_SECRET);
+            $this->_serverToken = ($service == 'test' ? self::TEST_SERVER_TOKEN : self::SERVER_TOKEN);
+        } else {
+            $this->_clientId = $credentials['clientId'];
+            $this->_clientSecret = $credentials['clientSecret'];
+            $this->_serverToken = $credentials['serverToken'];
+        }
         $this->_url = ($service == 'test'? self::TESTURL : self::URL);
         $this->_accessToken = $accessToken;
         $this->_refreshToken = $refreshToken;
@@ -318,7 +376,7 @@ class Hmrc
         if ($authType == self::AUTH_TYPE_USER) {
             $headers['Authorization'] = 'Bearer ' . $this->_accessToken;
         } else if ($authType == self::AUTH_TYPE_SERVER) {
-            $headers['Authorization'] = 'Bearer ' . self::SERVER_TOKEN;
+            $headers['Authorization'] = 'Bearer ' . $this->_serverToken;
         }
         if ($this->govTestScenario != '') {
             $headers['Gov-Test-Scenario'] = $this->govTestScenario;
@@ -344,8 +402,8 @@ class Hmrc
     public function refreshAccessToken(){
         $client = new Client();
         $formParams = [
-            'client_secret' => self::CLIENT_SECRET,
-            'client_id' => self::CLIENT_ID,
+            'client_secret' => $this->_clientSecret,
+            'client_id' => $this->_clientId,
             'grant_type' => 'refresh_token',
             'refresh_token' => $this->_refreshToken
         ];
@@ -381,8 +439,8 @@ class Hmrc
         $client = new Client();
         $formParams = [
             'code'=> $code,
-            'client_secret' => self::CLIENT_SECRET,
-            'client_id' => self::CLIENT_ID,
+            'client_secret' => $this->_clientSecret,
+            'client_id' => $this->_clientId,
             'grant_type' => 'authorization_code',
             'redirect_uri' => $redirectUrl
         ];
@@ -433,7 +491,7 @@ class Hmrc
      * @return string  URI for user to visit to authorise application
      */
     public function getCodeUri($state, $redirectUrl, $scope) {
-        return $this->_url."/oauth/authorize?response_type=code&client_id=".self::CLIENT_ID."&scope=$scope&state=$state&redirect_uri=$redirectUrl";
+        return $this->_url."/oauth/authorize?response_type=code&client_id=".$this->_clientId."&scope=$scope&state=$state&redirect_uri=$redirectUrl";
     }
 
     /**

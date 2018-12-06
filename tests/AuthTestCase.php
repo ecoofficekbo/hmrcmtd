@@ -25,6 +25,13 @@ class AuthTestCase extends BaseTestCase
     protected $redirectUrl = 'urn:ietf:wg:oauth:2.0:oob';
     protected $authorisationCode = '';
 
+    public function setUp()
+    {
+        parent::setUp();
+
+        $this->authorisationCode = getenv('AUTHORISATION_CODE');
+    }
+
     public function testGetCode()
     {
         $accessToken = ''; $refreshToken = ''; $auth = '';
@@ -40,15 +47,15 @@ class AuthTestCase extends BaseTestCase
         if ($this->authorisationCode == '' && $accessToken == '' && $refreshToken == '') {
             // No code is specified, and auth file doesn't exist
             // output URI to user for granting authority at HMRC website
-            $vat = new HmrcVat();
+            $vat = new HmrcVat('', '', '', 'test', null, $this->credentials);
             //$hmrc = new Hmrc();
             $vat->createTestUser();
             $vrn = $vat->responseBody->vrn;
             $userId = $vat->responseBody->userId;
             $password = $vat->responseBody->password;
             $data = $vat->getCodeUri('test-state',$this->redirectUrl);
-            $msg = "At the top of the file tests/VatTestCase.php, set the \$vrn variable to $vrn\n\n";
-            $msg .= "Please authenticate your test user with userId $userId and password $password at:\n\n$data\n\nThen enter the supplied authorisation code at the top of AuthTestCase.php (protected \$code = 'paste-your-code-here';)\n\nThen you can run this test again\n";
+            $msg = "In your .env file, set the VAT_REGISTRATION_NUMBER to $vrn\n\n";
+            $msg .= "Please authenticate your test user with userId $userId and password $password at:\n\n$data\n\nThen enter the supplied authorisation code in your .env file in AUTHORISATION_CODE=\"paste-your-code-here\"\n\nThen you can run this test again\n";
             fwrite(STDOUT, $msg . "\n");
             exit();
         } else {
@@ -62,7 +69,7 @@ class AuthTestCase extends BaseTestCase
     public function testGetToken($auth)
     {
         if ($this->authorisationCode != '' && $auth == '') {
-            $hmrc = new Hmrc();
+            $hmrc = new Hmrc('', '', 'test', null, $this->credentials);
             $hmrc->getToken($this->authorisationCode, $this->redirectUrl);
             $data = $hmrc->responseBody;
             $this->assertTrue($data->access_token != '' && $data->refresh_token != '');
@@ -87,7 +94,7 @@ class AuthTestCase extends BaseTestCase
     {
         $accessToken = $auth->access_token; $refreshToken = $auth->refresh_token;
 
-        $hmrc = new Hmrc($accessToken, $refreshToken);
+        $hmrc = new Hmrc($accessToken, $refreshToken, 'test', null, $this->credentials);
         $ret = $hmrc->refreshAccessToken();
         if ($ret != Hmrc::RETURN_SUCCESS) {
             echo json_encode($hmrc->responseBody);

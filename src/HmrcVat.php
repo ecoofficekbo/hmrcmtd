@@ -33,10 +33,11 @@ class HmrcVat extends Hmrc
      * @param string $refreshToken  Refresh token provided by supplying authorisation code to getToken()
      * @param string $service  test or live
      * @param \Closure|null $updateAuthFunction  Function to call when authentication tokens have been refreshed by refreshAccessToken()
+     * @param array $credentials   Array with the elements clientID, clientSecret, serverToken
      */
-    public function __construct($vrn = '', $accessToken = '', $refreshToken = '', $service='test', $updateAuthFunction=null)
+    public function __construct($vrn = '', $accessToken = '', $refreshToken = '', $service='test', $updateAuthFunction=null, $credentials=null)
     {
-        parent::__construct($accessToken, $refreshToken, $service, $updateAuthFunction);
+        parent::__construct($accessToken, $refreshToken, $service, $updateAuthFunction, $credentials);
         $this->vrn = $vrn;
     }
 

@@ -21,7 +21,18 @@ use PHPUnit\Framework\TestCase as PHPUnit_Framework_TestCase;
 
 abstract class BaseTestCase extends PHPUnit_Framework_TestCase
 {
-   public function assertArrayContainsArray($expected, $actual)
+    protected $credentials;
+
+    public function setUp()
+    {
+        $this->credentials = [
+            'clientId' => getenv('CLIENT_ID'),
+            'clientSecret' => getenv('CLIENT_SECRET'),
+            'serverToken' => getenv('SERVER_TOKEN')
+        ];
+    }
+
+    public function assertArrayContainsArray($expected, $actual)
     {
         for ($i = 0; $i < count($expected); $i++) {
             $a = json_decode(json_encode($actual[$i]), true);

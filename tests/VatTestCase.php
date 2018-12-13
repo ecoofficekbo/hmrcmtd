@@ -43,6 +43,8 @@ class VatTestCase extends BaseTestCase
     protected $singlePayment = '{"payments":[{"amount":1534.65,"received":"2017-02-12"}]}';
     protected $multiplePayments = '{"payments":[{"amount":5,"received":"2017-02-11"},{"amount":50,"received":"2017-03-11"},{"amount":1000,"received":"2017-03-12"},{"amount":321,"received":"2017-08-05"},{"amount":91},{"amount":5,"received":"2017-09-12"}]}';
     protected $vatReturn ;
+    protected $invalidVatReturn ;
+    protected $invalidVatReturn1 ;
 
     public function setUp() {
         parent::setUp();
@@ -60,6 +62,8 @@ class VatTestCase extends BaseTestCase
             fwrite(STDOUT, "Refreshed Authentication Token\n");
         };
         $this->vatReturn = new VatReturn('18A2', 1000, 0, 1000, 500, 500, 5000, 2500, 0, 0, true);
+        $this->invalidVatReturn = new VatReturn('18A2', 1000, 0, 1000, 500, 500, 5000.25, 2500.75, 0, 0, true);
+        $this->invalidVatReturn1 = new VatReturn('18A2', 1000, 0, 1000, 1500, -500, 5000, 7500, 0, 0, true);
         $this->vrn = getenv('VAT_REGISTRATION_NUMBER');
     }
 
@@ -123,6 +127,21 @@ class VatTestCase extends BaseTestCase
         // THIS TEST WILL ONLY SUCCEED THE FIRST TIME IT'S RUN
         // SUBSEQUENT RUNS WILL RESULT IN A 403 DUPLICATE SUBMISSION ERROR
         $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', $this->updateAuthFunction, $this->credentials);
+        $return = $vat->postVatReturn($this->invalidVatReturn);
+        $this->assertEquals(Hmrc::RETURN_ERROR, $return);
+        $this->assertEquals(400, $vat->statusCode);
+        $array = json_decode(json_encode($vat->responseBody), true);
+        $this->assertEquals('INVALID_REQUEST', $array['code']);
+        $this->assertEquals('INVALID_MONETARY_AMOUNT', $array['errors'][0]['code']);
+        $this->assertEquals('INVALID_MONETARY_AMOUNT', $array['errors'][1]['code']);
+
+        $return = $vat->postVatReturn($this->invalidVatReturn1);
+        $this->assertEquals(Hmrc::RETURN_ERROR, $return);
+        $this->assertEquals(400, $vat->statusCode);
+        $array = json_decode(json_encode($vat->responseBody), true);
+        $this->assertEquals('INVALID_REQUEST', $array['code']);
+        $this->assertEquals('INVALID_MONETARY_AMOUNT', $array['errors'][0]['code']);
+
         $return = $vat->postVatReturn($this->vatReturn);
         if ($return == Hmrc::RETURN_SUCCESS || $return == Hmrc::RETURN_AUTH_UPDATE) {
             $this->assertEquals(201, $vat->statusCode);

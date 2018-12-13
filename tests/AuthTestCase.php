@@ -94,12 +94,17 @@ class AuthTestCase extends BaseTestCase
     {
         $accessToken = $auth->access_token; $refreshToken = $auth->refresh_token;
 
+        $hmrc = new Hmrc($accessToken, substr($refreshToken,0,15), 'test', null, $this->credentials);
+        $ret = $hmrc->refreshAccessToken();
+        $this->assertEquals($ret, Hmrc::RETURN_ERROR);
+        $this->assertEquals(json_encode($hmrc->responseBody), '{"error":"invalid_grant","error_description":"refresh_token is invalid"}');
+
         $hmrc = new Hmrc($accessToken, $refreshToken, 'test', null, $this->credentials);
         $ret = $hmrc->refreshAccessToken();
         if ($ret != Hmrc::RETURN_SUCCESS) {
             echo json_encode($hmrc->responseBody);
         }
-        $this->assertEquals($hmrc->refreshAccessToken(), Hmrc::RETURN_SUCCESS);
+        $this->assertEquals($ret, Hmrc::RETURN_SUCCESS);
 
 
         $data = $hmrc->responseBody;

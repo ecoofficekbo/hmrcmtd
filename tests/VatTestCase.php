@@ -69,7 +69,7 @@ class VatTestCase extends BaseTestCase
 
     public function testGetVatObligations()
     {
-        $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', $this->updateAuthFunction, $this->credentials);
+        $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', false, $this->updateAuthFunction, $this->credentials);
         $return = $vat->getVatObligations('2017-01-01','2017-06-30', '');
         $this->assertEquals(200, $vat->statusCode);
         $this->assertEquals($this->defaultVatObligations,  json_encode($vat->responseBody));
@@ -126,7 +126,7 @@ class VatTestCase extends BaseTestCase
     public function testPostVatReturn() {
         // THIS TEST WILL ONLY SUCCEED THE FIRST TIME IT'S RUN
         // SUBSEQUENT RUNS WILL RESULT IN A 403 DUPLICATE SUBMISSION ERROR
-        $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', $this->updateAuthFunction, $this->credentials);
+        $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', false, $this->updateAuthFunction, $this->credentials);
         $return = $vat->postVatReturn($this->invalidVatReturn);
         $this->assertEquals(Hmrc::RETURN_ERROR, $return);
         $this->assertEquals(400, $vat->statusCode);
@@ -193,7 +193,7 @@ class VatTestCase extends BaseTestCase
     }
     public function testGetVatReturn()
      {
-         $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', $this->updateAuthFunction, $this->credentials);
+         $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', false, $this->updateAuthFunction, $this->credentials);
          $return = $vat->getVatReturn('18A2');
          $this->assertEquals(200, $vat->statusCode);
          $expectedArray = json_decode(json_encode($this->vatReturn),true);
@@ -209,7 +209,7 @@ class VatTestCase extends BaseTestCase
      }
      public function testGetVatLiabilities()
      {
-         $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', $this->updateAuthFunction, $this->credentials);
+         $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', false, $this->updateAuthFunction, $this->credentials);
          $return = $vat->getVatLiabilities('2017-01-25','2017-06-30');
          $this->assertEquals(404, $vat->statusCode); // Test no results
 
@@ -226,7 +226,7 @@ class VatTestCase extends BaseTestCase
      }
     public function testGetVatPayments()
     {
-        $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', $this->updateAuthFunction, $this->credentials);
+        $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', false, $this->updateAuthFunction, $this->credentials);
         $return = $vat->getVatPayments('2016-12-01','2017-06-30');
         $this->assertEquals(404, $vat->statusCode); // Test no results
 

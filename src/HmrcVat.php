@@ -35,9 +35,9 @@ class HmrcVat extends Hmrc
      * @param \Closure|null $updateAuthFunction  Function to call when authentication tokens have been refreshed by refreshAccessToken()
      * @param array $credentials   Array with the elements clientID, clientSecret, serverToken
      */
-    public function __construct($vrn = '', $accessToken = '', $refreshToken = '', $service='test', $updateAuthFunction=null, $credentials=null)
+    public function __construct($vrn = '', $accessToken = '', $refreshToken = '', $service='test', $refreshCredentialsIfNeeded, $updateAuthFunction=null, $credentials=null)
     {
-        parent::__construct($accessToken, $refreshToken, $service, $updateAuthFunction, $credentials);
+        parent::__construct($accessToken, $refreshToken, $service, $refreshCredentialsIfNeeded, $updateAuthFunction, $credentials);
         $this->vrn = $vrn;
     }
 

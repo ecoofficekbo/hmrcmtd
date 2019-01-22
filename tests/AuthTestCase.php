@@ -47,7 +47,7 @@ class AuthTestCase extends BaseTestCase
         if ($this->authorisationCode == '' && $accessToken == '' && $refreshToken == '') {
             // No code is specified, and auth file doesn't exist
             // output URI to user for granting authority at HMRC website
-            $vat = new HmrcVat('', '', '', 'test', null, $this->credentials);
+            $vat = new HmrcVat('', '', '', 'test', false, null, $this->credentials);
             //$hmrc = new Hmrc();
             $vat->createTestUser();
             $vrn = $vat->responseBody->vrn;
@@ -69,7 +69,7 @@ class AuthTestCase extends BaseTestCase
     public function testGetToken($auth)
     {
         if ($this->authorisationCode != '' && $auth == '') {
-            $hmrc = new Hmrc('', '', 'test', null, $this->credentials);
+            $hmrc = new Hmrc('', '', 'test', false, null, $this->credentials);
             $hmrc->getToken($this->authorisationCode, $this->redirectUrl);
             $data = $hmrc->responseBody;
             $this->assertTrue($data->access_token != '' && $data->refresh_token != '');
@@ -94,16 +94,17 @@ class AuthTestCase extends BaseTestCase
     {
         $accessToken = $auth->access_token; $refreshToken = $auth->refresh_token;
 
-        $hmrc = new Hmrc($accessToken, substr($refreshToken,0,15), 'test', null, $this->credentials);
+        $hmrc = new Hmrc($accessToken, substr($refreshToken,0,15), 'test', false, null, $this->credentials);
         $ret = $hmrc->refreshAccessToken();
         $this->assertEquals($ret, Hmrc::RETURN_ERROR);
         $this->assertEquals(json_encode($hmrc->responseBody), '{"error":"invalid_grant","error_description":"refresh_token is invalid"}');
 
-        $hmrc = new Hmrc($accessToken, $refreshToken, 'test', null, $this->credentials);
+        $hmrc = new Hmrc($accessToken, $refreshToken, 'test', false, null, $this->credentials);
         $ret = $hmrc->refreshAccessToken();
         if ($ret != Hmrc::RETURN_SUCCESS) {
             echo json_encode($hmrc->responseBody);
         }
+        $this->assertEquals(true, $hmrc->credentialsRefreshed);
         $this->assertEquals($ret, Hmrc::RETURN_SUCCESS);
 
 

@@ -253,6 +253,13 @@ class Hmrc
     public $receiptTimestamp;
 
     /**
+     * True if this object has just refreshed the HMRC access tokens
+     *
+     * @var boolean
+     */
+    public $credentialsRefreshed;
+
+    /**
      * Hmrc constructor.
      * 
      * @param string $accessToken  Access token provided by supplying authorisation code to getToken()
@@ -261,7 +268,7 @@ class Hmrc
      * @param \Closure|null $updateAuthFunction  Function to call when authentication tokens have been refreshed by refreshAccessToken()
      * @param array $credentials   Array with the elements clientID, clientSecret, serverToken
      */
-    public function __construct($accessToken = '', $refreshToken = '', $service = 'test', $updateAuthFunction = null, $credentials = null)
+    public function __construct($accessToken = '', $refreshToken = '', $service = 'test', $refreshCredentialsIfNeeded, $updateAuthFunction = null, $credentials = null)
     {
         if (!is_array($credentials)) {
             $this->_clientId = ($service == 'test' ? self::TEST_CLIENT_ID : self::CLIENT_ID);
@@ -272,6 +279,7 @@ class Hmrc
             $this->_clientSecret = $credentials['clientSecret'];
             $this->_serverToken = $credentials['serverToken'];
         }
+        $this->_refreshCredentialsIfNeeded = $refreshCredentialsIfNeeded;
         $this->_url = ($service == 'test'? self::TESTURL : self::URL);
         $this->_accessToken = $accessToken;
         $this->_refreshToken = $refreshToken;
@@ -328,10 +336,10 @@ class Hmrc
                 $response = $error->getResponse();
                 $body = json_decode($response->getBody());
 
-                if ($body->code == 'INVALID_CREDENTIALS') {
+                if ($body->code == 'INVALID_CREDENTIALS' && $this->_refreshCredentialsIfNeeded && !$this->credentialsRefreshed) {
                     // Need to refresh credentials
                     $this->updatedAuthentication = $this->refreshAccessToken();
-
+                    
                     // Token has been refreshed, retry execution
                     return $this->_execute($authType);
                 }
@@ -416,6 +424,7 @@ class Hmrc
             $this->_accessToken = $data->access_token;
             $this->_refreshToken = $data->refresh_token;
             $this->responseBody = $data;
+            $this->credentialsRefreshed = true;
 
             return self::RETURN_SUCCESS;
         } catch (BadResponseException $error) {
@@ -469,6 +478,7 @@ class Hmrc
      */
     public function clearPreviousCall() {
         $this->endPoint = '';
+        $this->credentialsRefreshed = false;
         $this->method = 'GET';
         $this->statusCode = 0;
         $this->requestBody = null;

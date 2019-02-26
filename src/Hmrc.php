@@ -260,6 +260,13 @@ class Hmrc
     public $credentialsRefreshed;
 
     /**
+     * True if this object has just refreshed the HMRC access tokens
+     *
+     * @var boolean
+     */
+    public $logFile;
+
+    /**
      * Hmrc constructor.
      * 
      * @param string $accessToken  Access token provided by supplying authorisation code to getToken()
@@ -330,6 +337,8 @@ class Hmrc
         try {
             $result = $this->_sendRequest($authType);
         } catch (BadResponseException $error) {
+            if ($this->logFile) { error_log(Date('Y-m-d H:i:s').": Error: {$error->getCode()} - {$error->getResponse()}\n",3,$this->logFile); }
+
             // Error occurred, check code to see whether it was due to expired credentials
             if ($error->getCode() == 401) {
                 // Token not valid
@@ -397,6 +406,7 @@ class Hmrc
         }
 
         $client = new Client();
+        if ($this->logFile) { error_log(Date('Y-m-d H:i:s').": {$this->endPoint} {$this->_accessToken}\n",3,$this->logFile); }
         $result = $client->request($this->method, $this->_url.'/'.$this->endPoint, $options);
 
         return $result;
@@ -415,6 +425,9 @@ class Hmrc
             'grant_type' => 'refresh_token',
             'refresh_token' => $this->_refreshToken
         ];
+        if ($this->logFile) { error_log(Date('Y-m-d H:i:s').": /oauth/token {$this->_refreshToken}\n",3,$this->logFile); }
+
+        $this->credentialsRefreshed = true;
         try {
             $result = $client->post($this->_url . '/oauth/token', ['form_params' => $formParams]);
 
@@ -424,7 +437,6 @@ class Hmrc
             $this->_accessToken = $data->access_token;
             $this->_refreshToken = $data->refresh_token;
             $this->responseBody = $data;
-            $this->credentialsRefreshed = true;
 
             return self::RETURN_SUCCESS;
         } catch (BadResponseException $error) {

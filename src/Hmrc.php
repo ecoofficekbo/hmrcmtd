@@ -260,6 +260,13 @@ class Hmrc
     public $credentialsRefreshed;
 
     /**
+     * Object containing the fraud prevention headers for the next API request
+     *
+     * @var FraudPrevention
+     */
+    public $fraudPrevention;
+
+    /**
      * True if this object has just refreshed the HMRC access tokens
      *
      * @var boolean
@@ -399,6 +406,13 @@ class Hmrc
             $headers['Gov-Test-Scenario'] = $this->govTestScenario;
         }
 
+        if ($this->fraudPrevention) {
+            $fraudHeaders = $this->fraudPrevention->getHeaders();
+            foreach ($fraudHeaders as $key => $value) {
+                $headers[$key] = $value;
+            }
+        }
+        var_dump($headers);
         $options[RequestOptions::HEADERS] = $headers;
         $options[RequestOptions::QUERY] = $this->query;
         if ($this->method == 'POST' && $this->requestBody) {

@@ -17,6 +17,7 @@
 
 namespace Tests;
 
+use EcoMtd\FraudPrevention;
 use EcoMtd\Hmrc;
 use EcoMtd\VatReturn;
 use EcoMtd\HmrcVat;
@@ -193,7 +194,13 @@ class VatTestCase extends BaseTestCase
     }
     public function testGetVatReturn()
      {
+         $fraudPrevention = new FraudPrevention();
+         $fraudPrevention->setClientConnectionMethod(FraudPrevention::WEB_APP_VIA_SERVER);
+         $fraudPrevention->setClientPublicIp('1.1.1.1');
+         $fraudPrevention->setClientMacAddresses(['ea:43:1a:5d:21:45','10:12:cc:fa:aa:32']);
+
          $vat = new HmrcVat($this->vrn, $this->accessToken, $this->refreshToken, 'test', false, $this->updateAuthFunction, $this->credentials);
+         $vat->fraudPrevention = $fraudPrevention;
          $return = $vat->getVatReturn('18A2');
          $this->assertEquals(200, $vat->statusCode);
          $expectedArray = json_decode(json_encode($this->vatReturn),true);

@@ -344,7 +344,7 @@ class Hmrc
         try {
             $result = $this->_sendRequest($authType);
         } catch (BadResponseException $error) {
-            if ($this->logFile) { error_log(Date('Y-m-d H:i:s').": Error: {$error->getCode()} - {$error->getResponse()}\n",3,$this->logFile); }
+            if ($this->logFile) { error_log(Date('Y-m-d H:i:s').": Error: {$error->getCode()} - {$error->getResponse()->getBody()}\n",3,$this->logFile); }
 
             // Error occurred, check code to see whether it was due to expired credentials
             if ($error->getCode() == 401) {
@@ -412,7 +412,6 @@ class Hmrc
                 $headers[$key] = $value;
             }
         }
-        var_dump($headers);
         $options[RequestOptions::HEADERS] = $headers;
         $options[RequestOptions::QUERY] = $this->query;
         if ($this->method == 'POST' && $this->requestBody) {

@@ -101,7 +101,7 @@ class FraudPrevention
      * @param array List ['os' => 'alice_desktop', 'my-vendor' => 'alice_online_account']
      */
     public function setClientUserIds($value) {
-        $this->clientUserIds = $this->getList($value);
+        $this->clientUserIds = $this->getKeyValues($value);
     }
     /*
      * The local timezone of the originating device, expressed as UTC±<hh>:<mm>
@@ -190,9 +190,10 @@ class FraudPrevention
      * @param array $osArray KeyValueList of client operating system, like [['Mac' => 'OSX']] or [['Windows' => 'XP'],['Windows' => 'NT']]
      * @param array $deviceArray KeyValueList of client device manufacturer/models, like [['Apple' => 'iPhone7,2']] or [['Dell' => 'XPS15'],['Dell' => 'XPS13']]
      */
-    public function setClientUserAgent($osArray, $deviceArray) {
-        $os = $this->getKeyValueList($osArray, '/', ' ');
-        $device = $this->getKeyValueList($deviceArray, '/', ' ');
+    public function setClientUserAgent($osArray = null, $deviceArray = null) {
+        $os = $device = '/';
+        if ($osArray) { $os = $this->getKeyValues($osArray, ' ', '/'); }
+        if ($deviceArray) { $device = $this->getKeyValues($deviceArray, ' ', '/'); }
         $this->clientUserAgent = "$os ($device)";
     }
 
@@ -233,21 +234,25 @@ class FraudPrevention
     public function setVendorForwarded($value) {
         $this->vendorForwarded = $this->getKeyValueList($value);
     }
-    private function getKeyValues($array, $keySeparator = '&') {
+    private function getKeyValues($array, $keySeparator = '&', $valueSeparator = '=') {
         $return = '';
-        foreach ($array as $key => $value) {
-            $return .= rawurlencode($key) . '=' . rawurlencode($value) . $keySeparator;
+        if (is_array($array)) {
+            foreach ($array as $key => $value) {
+                $return .= rawurlencode($key) . $valueSeparator . rawurlencode($value) . $keySeparator;
+            }
+            $return = substr($return, 0, -1);
         }
-        $return = substr($return, 0, -1);
         return $return;
     }
-    private function getKeyValueList($array, $keySeparator = '&', $listSeparator = ',') {
+    private function getKeyValueList($array, $keySeparator = '&', $listSeparator = ',', $valueSeparator = '=') {
         $return = '';
         foreach ($array as $object) {
-            foreach ($object as $key => $value) {
-                $return .= rawurlencode($key) . '=' . rawurlencode($value) . $keySeparator;
+            if (is_array($object)) {
+                foreach ($object as $key => $value) {
+                    $return .= rawurlencode($key) . $valueSeparator . rawurlencode($value) . $keySeparator;
+                }
+                $return = substr($return, 0, -1) . $listSeparator;
             }
-            $return = substr($return, 0, -1) . $listSeparator;
         }
         $return = substr($return, 0, -1);
         return $return;

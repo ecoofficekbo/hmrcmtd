@@ -2,7 +2,7 @@
   "name": "ecohmrc/mtd",
   "description":"",
   "require": {
-    "guzzlehttp/guzzle": "^6.3"
+    "guzzlehttp/guzzle": "^6.3|^7.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^7.3",

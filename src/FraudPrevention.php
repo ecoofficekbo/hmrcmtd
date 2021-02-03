@@ -16,12 +16,14 @@ class FraudPrevention
 
     public $clientConnectionMethod = '';
     public $clientPublicIp = '';
+    public $clientPublicIpTimestamp = '';
     public $clientPublicPort = '';
     public $clientDeviceId = '';
     public $clientUserIds = '';
     public $clientMacAddresses = '';
     public $clientTimezone = '';
     public $clientLocalIps = '';
+    public $clientLocalIpsTimestamp = '';
     public $clientScreens = '';
     public $clientWindowSize = '';
     public $clientBrowserPlugins = '';
@@ -33,9 +35,10 @@ class FraudPrevention
     public $vendorLicenseIds = '';
     public $vendorPublicIp = '';
     public $vendorForwarded = '';
+    public $vendorProductName = '';
 
-    private $availableClientHeaders = [ 'Connection-Method', 'Public-IP', 'Public-Port', 'Device-ID', 'User-IDs', 'MAC-Addresses', 'Timezone', 'Local-IPs', 'Screens', 'Window-Size', 'User-Agent', 'Browser-Plugins', 'Browser-JS-User-Agent', 'Browser-Do-Not-Track', 'Multi-Factor' ];
-    private $availableVendorHeaders = [ 'Version', 'License-IDs', 'Public-IP', 'Forwarded' ];
+    private $availableClientHeaders = [ 'Connection-Method', 'Public-IP', 'Public-IP-Timestamp', 'Public-Port', 'Device-ID', 'User-IDs', 'MAC-Addresses', 'Timezone', 'Local-IPs', 'Local-IPs-Timestamp', 'Screens', 'Window-Size', 'User-Agent', 'Browser-Plugins', 'Browser-JS-User-Agent', 'Browser-Do-Not-Track', 'Multi-Factor' ];
+    private $availableVendorHeaders = [ 'Version', 'License-IDs', 'Public-IP', 'Forwarded', 'Product-Name' ];
 
     /*
      * @return array Fraud Prevention Headers
@@ -53,9 +56,9 @@ class FraudPrevention
         foreach ($this->availableVendorHeaders as $availableHeader) {
             $name = 'Gov-Vendor-' . $availableHeader;
             $variableName = 'vendor'.str_replace('-', '', ucwords(strtolower($availableHeader), '-'));
-            if ($this->{$variableName} != '') {
+            //if ($this->{$variableName} != '') {
                 $headers[$name] = $this->{$variableName};
-            }
+            //}
         }
         return $headers;
     }
@@ -76,6 +79,15 @@ class FraudPrevention
      */
     public function setClientPublicIp($value) {
         $this->clientPublicIp = $value;
+    }
+
+    /*
+     * A timestamp to show when Gov-Client-Public-Ip is collected
+     *
+     * @param string '2021-02-03T16:49:18.448Z'
+     */
+    public function setClientPublicIpTimestamp($value) {
+        $this->clientPublicIpTimestamp = $value;
     }
     /*
      * The public TCP port that the originating device uses when initiating the request
@@ -120,13 +132,21 @@ class FraudPrevention
         $this->clientLocalIps = $this->getList($value);
     }
     /*
+     * A timestamp to show when Gov-Client-Local-IPs is collected
+     *
+     * @param string '2021-02-03T16:49:18.448Z'
+     */
+    public function setClientLocalIpsTimestamp($value) {
+        $this->clientLocalIpsTimestamp = $value;
+    }
+    /*
      * Information related to the originating device’s screens. The fields include:
      * width is the reported width of the screen, in pixels
      * height is the reported height of the screen, in pixels
      * scaling-factor is the reported scaling factor of the screen. For instance, high pixel density screens might have a scaling factor of 2, whereas standard definition screens might report a scaling factor of 1. If the scaling factor cannot be retrieved, leave this empty or omit it entirely.
      * colour-depth is the colour depth of the screen, in bits. If the colour depth cannot be retrieved, leave this empty or omit it entirely
      *
-     * @param array KeyValueList [['width' => 1920, 'height' => 1080, 'scaling-factor' => 1, 'color-depth' => 16],['width' => 3000, 'height' => 2000, 'scaling-factor' => 1.25, 'color-depth' => null]]
+     * @param array KeyValueList [['width' => 1920, 'height' => 1080, 'scaling-factor' => 1, 'colour-depth' => 16],['width' => 3000, 'height' => 2000, 'scaling-factor' => 1.25, 'colour-depth' => null]]
      */
     public function setClientScreens($value) {
         $this->clientScreens = $this->getKeyValueList($value);
@@ -191,10 +211,21 @@ class FraudPrevention
      * @param array $deviceArray KeyValueList of client device manufacturer/models, like [['Apple' => 'iPhone7,2']] or [['Dell' => 'XPS15'],['Dell' => 'XPS13']]
      */
     public function setClientUserAgent($osArray = null, $deviceArray = null) {
-        $os = $device = '/';
-        if ($osArray) { $os = $this->getKeyValues($osArray, ' ', '/'); }
-        if ($deviceArray) { $device = $this->getKeyValues($deviceArray, ' ', '/'); }
-        $this->clientUserAgent = "$os ($device)";
+        //$os = $device = '/';
+        //if ($osArray) { $os = $this->getKeyValues($osArray, ' ', '/'); }
+        //if ($deviceArray) { $device = $this->getKeyValues($deviceArray, ' ', '/'); }
+        //$this->clientUserAgent = "$os ($device)";
+        $string = '';
+        foreach($osArray as $key => $value) {
+            $string .= 'os-family='.rawurlencode(($key==''?'UNKNOWN':$key)).'&os-version='.rawurlencode(($value==''?'UNKNOWN':$value)).'&';
+            break;
+        }
+        foreach($deviceArray as $key => $value) {
+            $string .= 'device-manufacturer='. rawurlencode(($key==''?'UNKNOWN':$key)).'&device-model='.rawurlencode(($value==''?'UNKNOWN':$value)).'&';
+            break;
+        }
+        $string = substr($string,0,-1);
+        $this->clientUserAgent = $string;
     }
 
     /*
@@ -222,6 +253,14 @@ class FraudPrevention
      */
     public function setVendorPublicIp($value) {
         $this->vendorPublicIp = $value;
+    }
+    /*
+     * The name of the product marketed to end users
+     *
+     * @param string 'MySoftware'
+     */
+    public function setVendorProductName($value) {
+        $this->vendorProductName = rawurlencode($value);
     }
     /*
      * A list that details hops over the internet between services that terminate TLS.

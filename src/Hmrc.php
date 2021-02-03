@@ -282,7 +282,7 @@ class Hmrc
      * @param \Closure|null $updateAuthFunction  Function to call when authentication tokens have been refreshed by refreshAccessToken()
      * @param array $credentials   Array with the elements clientID, clientSecret, serverToken
      */
-    public function __construct($accessToken = '', $refreshToken = '', $service = 'test', $refreshCredentialsIfNeeded, $updateAuthFunction = null, $credentials = null)
+    public function __construct($accessToken = '', $refreshToken = '', $service = 'test', $refreshCredentialsIfNeeded=true, $updateAuthFunction = null, $credentials = null)
     {
         if (!is_array($credentials)) {
             $this->_clientId = ($service == 'test' ? self::TEST_CLIENT_ID : self::CLIENT_ID);
@@ -417,7 +417,7 @@ class Hmrc
         if ($this->method == 'POST' && $this->requestBody) {
             $options[RequestOptions::JSON] = $this->requestBody;
         }
-
+        
         $client = new Client();
         if ($this->logFile) { error_log(Date('Y-m-d H:i:s').": {$this->endPoint} {$this->_accessToken}\n",3,$this->logFile); }
         $result = $client->request($this->method, $this->_url.'/'.$this->endPoint, $options);
@@ -543,5 +543,11 @@ class Hmrc
         $this->requestBody = $body;
 
         return $this->post(self::AUTH_TYPE_SERVER);
+    }
+
+    public function testFraudHeaders() {
+        $this->clearPreviousCall();
+        $this->endPoint = 'test/fraud-prevention-headers/validate';
+        return $this->get();
     }
 }
